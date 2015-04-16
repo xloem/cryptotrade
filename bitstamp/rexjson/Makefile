@@ -1,3 +1,9 @@
+ifeq ($(BUILD),debug)
+CFLAGS := -g -O0
+else
+CFLAGS := -O2
+endif
+
 PROJECT = librexjson.a
 CC = $(PREFIX)gcc
 CXX = $(PREFIX)g++
@@ -9,7 +15,7 @@ SIZE = $(PREFIX)size
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 LDFLAGS = -std=c++11
-CFLAGS = -c -g -O0 -Wall
+CFLAGS += -c -Wall
 CC_FLAGS = $(CFLAGS)
 CXX_FLAGS =  -std=c++11 $(CFLAGS)
 

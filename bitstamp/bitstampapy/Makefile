@@ -1,3 +1,9 @@
+ifeq ($(BUILD),debug)
+CFLAGS := -g -O0
+else
+CFLAGS := -O2
+endif
+
 PROJECT = bitstampapy.so
 CC = $(PREFIX)gcc
 CXX = $(PREFIX)g++
@@ -8,8 +14,8 @@ LD = $(PREFIX)gcc
 SIZE = $(PREFIX)size
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
-LDFLAGS = -std=c++11 -shared -Wl,-soname,hello_ext.so -lpython2.7 -lboost_python $(shell pkg-config --libs curlpp) -lbitstampapi -lcrypto -lcmdargs -lrexjson -L../cmdargs -L../rexjson -L../api
-CFLAGS = -std=c++11 -ftemplate-backtrace-limit=64 -c -g -O2 -Wall -fPIC $(shell pkg-config --cflags curlpp)
+LDFLAGS = -std=c++11 -shared -Wl,-soname,hello_ext.so -lpython2.7 -lboost_python $(shell pkg-config --libs curlpp) -lbitstampapi -lcrypto -lrexjson -L../rexjson -L../api
+CFLAGS += -std=c++11 -c -Wall -ftemplate-backtrace-limit=64 -fPIC $(shell pkg-config --cflags curlpp)
 CC_FLAGS = $(CFLAGS)
 CXX_FLAGS = $(CFLAGS)
 

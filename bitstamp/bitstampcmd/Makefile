@@ -1,3 +1,9 @@
+ifeq ($(BUILD),debug)
+CFLAGS := -g -O0
+else
+CFLAGS := -O2
+endif
+
 PROJECT = bitstamp
 CC = $(PREFIX)gcc
 CXX = $(PREFIX)g++
@@ -9,9 +15,9 @@ SIZE = $(PREFIX)size
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 LDFLAGS = -std=c++11 -lrexjson -lbitstampapi -lcrypto $(shell pkg-config --libs curlpp) -L../rexjson -L../api
-CFLAGS = -c -g -O0 -Wall $(shell pkg-config --cflags curlpp) -I../  -I../include
+CFLAGS += -c -Wall $(shell pkg-config --cflags curlpp) -I../  -I../include
 CC_FLAGS = $(CFLAGS)
-CXX_FLAGS =  -std=c++11 $(CFLAGS)
+CXX_FLAGS = -std=c++11 $(CFLAGS)
 
 PROJECT_SRC_C = $(wildcard *.c)
 PROJECT_SRC_CXX = $(wildcard *.cxx)

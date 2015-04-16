@@ -1,3 +1,9 @@
+ifeq ($(BUILD),debug)
+CFLAGS := -g -O0
+else
+CFLAGS := -O2
+endif
+
 PROJECT = libbitstampapi.a
 CC = $(PREFIX)gcc
 CXX = $(PREFIX)g++
@@ -9,7 +15,7 @@ SIZE = $(PREFIX)size
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 LDFLAGS = -std=c++11 $(shell pkg-config --libs curlpp) -lcrypto -lcmdargs -lrexjson -L../cmdargs -L../rexjson
-CFLAGS = -c -g -O0 -Wall -fPIC $(shell pkg-config --cflags curlpp)
+CFLAGS += -c -Wall -fPIC $(shell pkg-config --cflags curlpp)
 CC_FLAGS = $(CFLAGS)
 CXX_FLAGS =  -std=c++11 $(CFLAGS)
 
