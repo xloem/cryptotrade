@@ -1,4 +1,4 @@
-ifeq ($(BUILD),debug)
+ifneq ($(BUILD),release)
 CFLAGS := -g -O0
 else
 CFLAGS := -O2
