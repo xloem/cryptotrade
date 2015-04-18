@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
@@ -16,6 +17,7 @@ cmd_args g_args;
  */
 static cmd_arg_spec g_argspec[] = {
 		{"help",	"h",	"Display this help", CMD_ARG_BOOL},
+		{"config",	"",		"JSON Config file, containing: user, key, secret", CMD_ARG_STRING},
 		{"user",	"",		"Bitstamp user id", CMD_ARG_STRING},
 		{"key",		"",		"Bitstamp API key", CMD_ARG_STRING},
 		{"secret",	"",		"Bitstamp API secret", CMD_ARG_STRING},
@@ -54,8 +56,20 @@ int main(int argc, const char *argv[])
 	}
 
 	try {
-		bitstamp::api api(g_args.get_value("key", "none"), g_args.get_value("user", "none"), g_args.get_value("secret", "none"));
-
+		rexjson::value cfg = rexjson::object();
+		if (!g_args.get_value("config").empty()) {
+			std::ifstream ifs(g_args.get_value("config"));
+			std::stringstream buffer;
+			buffer << ifs.rdbuf();
+			cfg.read(buffer.str());
+		}
+		if (!g_args.get_value("key").empty())
+			cfg["key"] = g_args.get_value("key");
+		if (!g_args.get_value("user").empty())
+			cfg["user"] = g_args.get_value("user");
+		if (!g_args.get_value("secret").empty())
+			cfg["secret"] = g_args.get_value("secret");
+		bitstamp::api api(cfg["key"].get_str(), cfg["user"].get_str(), cfg["secret"].get_str());
 		for (int i = 1; i < argc; i++) {
 			std::string arg(argv[i]);
 			if (arg[0] == '-')
