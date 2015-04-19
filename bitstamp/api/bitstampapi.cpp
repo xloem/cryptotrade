@@ -1,7 +1,7 @@
 #include <curlpp/Options.hpp>
 #include <curlpp/Infos.hpp>
 #include <curlpp/Exception.hpp>
-
+#include <errno.h>
 #include "hmac.h"
 #include "bitstampapi.h"
 
@@ -26,8 +26,12 @@ api::api(const api& a)
 std::string api::get_nonce()
 {
 	std::stringstream oss;
-	int64_t now = time(NULL);
-	oss << now;
+	timespec now;
+	if (clock_gettime(CLOCK_REALTIME, &now) < 0) {
+		oss << "clock_gettime failed, error code: " << errno;
+		throw std::runtime_error(oss.str());
+	}
+	oss << now.tv_sec << (now.tv_nsec / 1000);
 	return oss.str();
 }
 
