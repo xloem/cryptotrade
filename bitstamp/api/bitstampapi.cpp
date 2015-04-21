@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <curlpp/Options.hpp>
 #include <curlpp/Infos.hpp>
 #include <curlpp/Exception.hpp>
@@ -31,7 +32,9 @@ std::string api::get_nonce()
 		oss << "clock_gettime failed, error code: " << errno;
 		throw std::runtime_error(oss.str());
 	}
-	oss << now.tv_sec << (now.tv_nsec / 1000);
+	oss << now.tv_sec;
+	oss.fill('0');
+	oss << std::setw(6) << (now.tv_nsec / 1000);
 	return oss.str();
 }
 
