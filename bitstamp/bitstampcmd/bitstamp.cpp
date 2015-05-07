@@ -57,19 +57,22 @@ int main(int argc, const char *argv[])
 
 	try {
 		rexjson::value cfg = rexjson::object();
+		cfg["bitstamp-key"] = "none";
+		cfg["bitstamp-user"] = "none";
+		cfg["bitstamp-secret"] = "none";
 		if (!g_args.get_value("config").empty()) {
 			std::ifstream ifs(g_args.get_value("config"));
 			std::stringstream buffer;
 			buffer << ifs.rdbuf();
 			cfg.read(buffer.str());
 		}
-		if (!g_args.get_value("key").empty())
-			cfg["key"] = g_args.get_value("key");
-		if (!g_args.get_value("user").empty())
-			cfg["user"] = g_args.get_value("user");
-		if (!g_args.get_value("secret").empty())
-			cfg["secret"] = g_args.get_value("secret");
-		bitstamp::api api(cfg["key"].get_str(), cfg["user"].get_str(), cfg["secret"].get_str());
+		if (!g_args.get_value("bitstamp-key").empty())
+			cfg["bitstamp-key"] = g_args.get_value("bitstamp-key");
+		if (!g_args.get_value("bitstamp-user").empty())
+			cfg["bitstamp-user"] = g_args.get_value("bitstamp-user");
+		if (!g_args.get_value("bitstamp-secret").empty())
+			cfg["bitstamp-secret"] = g_args.get_value("bitstamp-secret");
+		bitstamp::api api(cfg["bitstamp-key"].get_str(), cfg["bitstamp-user"].get_str(), cfg["bitstamp-secret"].get_str());
 		for (int i = 1; i < argc; i++) {
 			std::string arg(argv[i]);
 			if (arg[0] == '-')
