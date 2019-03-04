@@ -2,29 +2,26 @@
 
 #include <map>
 
-#include <TArrayI.h>
 #include <TObjArray.h>
+
+#include "OrderbookCompressedHistoryDelta.hpp"
 
 // key pieces:
 //   - convert from ttree with branches to this
 //   - convert from this to something graphable like back to the ttree (at least vectors of values)
 //   - generate this from the network
 
-struct OrderbookCompressedHistory
+struct OrderbookCompressedHistory : public TObject
 {
 public:
+	OrderbookCompressedHistory() {}
+
 	Long64_t entries();
 
 	Long64_t baseTimestamp;
 	TObjArray deltas;
 
-	struct Delta : public TObject
-	{
-		UChar_t timestamp; // change from previous timestamp
-		Long64_t baseQuote;
-		TArrayI quotes; // run-length-encoded quotes: each is a delta from previous quote value, starting at base
-		TArrayI depths; // delta from previous depths; can use multiple times if outside expected range
-	};
+	using Delta = OrderbookCompressedHistoryDelta;
 
 	class Iterator
 	{
@@ -32,7 +29,7 @@ public:
 	public:
 		std::tuple<Long64_t, Long64_t, Long64_t> const & operator*() const;
 		Iterator & operator++();
-		bool operator!=(Iterator & other);
+		bool operator!=(Iterator const & other);
 
 	private:
 		Iterator(OrderbookCompressedHistory *obook);
@@ -47,6 +44,10 @@ public:
 	// iterating provides 3-tuples of timestamp, quote, and depth
 	Iterator begin() { return {this}; }
 	Iterator end() { return {nullptr}; }
+
+	// root
+	bool IsFolder() { return kTRUE; }
+	ClassDef(OrderbookCompressedHistory,1) // slimmed-down storage for orderbook history
 };
 
 class OrderbookCompressedHistoryFactory
@@ -59,10 +60,12 @@ public:
 	void addEntry(Long64_t quote, Long64_t depth);
 	void addChunk(OrderbookCompressedHistory & chunk);
 
-private:
-	using Delta = OrderbookCompressedHistory::Delta;
-
+	// will be auto-called as timestamp advances but should be called when done
 	void finishEntry();
+
+private:
+	using Delta = OrderbookCompressedHistoryDelta;
+
 	void addDeltaEntry(Int_t quote, Int_t depth);
 
 	OrderbookCompressedHistory & chunk;

@@ -46,7 +46,7 @@ std::tuple<Long64_t, Long64_t, Long64_t> const & OrderbookCompressedHistory::Ite
 	return timeQuoteDepth;
 }
 
-bool OrderbookCompressedHistory::Iterator::operator!=(Iterator & other)
+bool OrderbookCompressedHistory::Iterator::operator!=(Iterator const & other)
 {
 	if (other.obook == nullptr || obook != other.obook)
 	{
@@ -90,6 +90,10 @@ void OrderbookCompressedHistoryFactory::advance(Long64_t timestamp)
 	}
 	else
 	{
+		if (timestamp == lastTimestamp)
+		{
+			return;
+		}
 		finishEntry();
 	}
 

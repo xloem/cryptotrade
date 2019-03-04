@@ -12,6 +12,36 @@
 
 static bool stopped = false;
 
+/*
+ * Too much space used atm.
+ * Lots of redundant data is stored.
+ * Consider: store deltas rather than values.
+ * Size of timestamps drops significantly.
+ * Most order book values disappear.
+ *
+ * changes of orderbook:
+ * 	new values can be inserted
+ * 	old values can be removed
+ * 	depth of values can be changed
+ *
+ *
+ * Delta:
+ * 	timestamp delta (very small integer, 1 byte)
+ *	delta list, each containing:
+ *		quote
+ *		new depth (may be zero)
+ *
+ * Simplest if snapshots / keyframes are stored in-line with deltas ... but wrt apis these will be different
+ * so might as well store them side-by-side.
+ * 
+ * coudl also 'packetize' it, store them in-line -- makes it easy to reference
+ * alternatively could have an index externally
+ * 	i guess needs a reference to a snapshot that a delta applies on top of
+ *
+ * alternatively each set of deltas could be a different object
+ * and that object could reference the snapshot.
+ */
+
 class Main
 {
 public:
@@ -40,7 +70,7 @@ public:
 		}
 
 		f = new TFile(DATAFILNAME.c_str(), "NEW", "Orderbook History", 9);
-	  	nt = new TNtupleD(DATAOBJNAME.c_str(), "Bitstamp Orderbook Snapshot History", "time:quote:depth");
+	  	nt = new TNtupleD(DATAOBJNAME.c_str(), "Bitstamp Orderbook Snapshot History", "time:quote:depth", 32*1024*1024 /*buffer size*/);
 	}
 
 	void pollSnapshot()
