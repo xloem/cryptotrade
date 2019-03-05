@@ -21,7 +21,7 @@ CXX_FLAGS = -std=c++11 $(CFLAGS)
 
 PROJECT_SRC_C = $(wildcard *.c)
 PROJECT_SRC_CXX = $(wildcard *.cxx)
-PROJECT_SRC_CPP = $(wildcard *.cpp)
+PROJECT_SRC_CPP = bitstamp_orders.cpp $(wildcard OrderbookCompressed*.cpp)
 PROJECT_OBJ_C := $(PROJECT_SRC_C:.c=.o)
 PROJECT_OBJ_CXX := $(PROJECT_SRC_CXX:.cxx=.o)
 PROJECT_OBJ_CPP := $(PROJECT_SRC_CPP:.cpp=.o)
