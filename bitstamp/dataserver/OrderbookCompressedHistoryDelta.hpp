@@ -10,6 +10,7 @@ struct OrderbookCompressedHistoryDelta : public TObject
 	TArrayI depths; // delta from previous depths; can use multiple times if outside expected range
 
 	// root
-	bool IsFolder() { return kTRUE; }
-	ClassDef(OrderbookCompressedHistoryDelta,1) // Delta details used within OrderbookCompressedHistory
+	OrderbookCompressedHistoryDelta();
+	bool IsFolder() const { return kTRUE; }
+	ClassDef(OrderbookCompressedHistoryDelta,2) // Delta details used within OrderbookCompressedHistory
 };

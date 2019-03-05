@@ -14,7 +14,7 @@
 struct OrderbookCompressedHistory : public TObject
 {
 public:
-	OrderbookCompressedHistory() {}
+	OrderbookCompressedHistory();
 
 	Long64_t entries();
 
@@ -25,11 +25,17 @@ public:
 
 	class Iterator
 	{
-	friend class OrderbookCompressedHistory;
+	friend struct OrderbookCompressedHistory;
 	public:
 		std::tuple<Long64_t, Long64_t, Long64_t> const & operator*() const;
 		Iterator & operator++();
 		bool operator!=(Iterator const & other);
+
+		/*
+		bool integrate; // default false, set to change
+		bool bidsNegative; // default true, set to change
+		bool asksNegative; // default false, set to change
+		*/
 
 	private:
 		Iterator(OrderbookCompressedHistory *obook);
@@ -46,8 +52,8 @@ public:
 	Iterator end() { return {nullptr}; }
 
 	// root
-	bool IsFolder() { return kTRUE; }
-	ClassDef(OrderbookCompressedHistory,1) // slimmed-down storage for orderbook history
+	bool IsFolder() const { return kTRUE; }
+	ClassDef(OrderbookCompressedHistory,3) // slimmed-down storage for orderbook history
 };
 
 class OrderbookCompressedHistoryFactory

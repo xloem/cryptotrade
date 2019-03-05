@@ -1,5 +1,17 @@
 #include "OrderbookCompressedHistory.hpp"
 
+#include <TClass.h>
+
+OrderbookCompressedHistory::OrderbookCompressedHistory()
+{
+	Class()->IgnoreTObjectStreamer();
+}
+
+OrderbookCompressedHistoryDelta::OrderbookCompressedHistoryDelta()
+{
+	Class()->IgnoreTObjectStreamer();
+}
+
 OrderbookCompressedHistory::Iterator & OrderbookCompressedHistory::Iterator::operator++()
 {
 	Delta * delta = nullptr;
@@ -38,6 +50,14 @@ OrderbookCompressedHistory::Iterator & OrderbookCompressedHistory::Iterator::ope
 	// expressions combined to quickly ensure only 1 map lookup
 	std::get<2>(timeQuoteDepth) = (depths[std::get<1>(timeQuoteDepth)] += delta->depths.At(entryIdx));
 	++ entryIdx;
+	// skip empty entries that are just to prepare larger values
+	if (entryIdx < delta->depths.GetSize())
+	{
+		if (delta->quotes.At(entryIdx - 1) == 0 || delta->depths.At(entryIdx - 1) == 0)
+		{
+			return ++(*this);
+		}
+	}
 	return *this;
 };
 
@@ -110,8 +130,9 @@ void OrderbookCompressedHistoryFactory::advance(Long64_t timestamp)
 	delta->timestamp = timestamp - lastTimestamp;
 	delta->quotes.Set(256);
 	delta->depths.Set(256);
-	numDeltaEntries = 0;
 	chunk.deltas.Add(delta);
+	lastTimestamp = timestamp;
+	numDeltaEntries = 0;
 }
 
 void OrderbookCompressedHistoryFactory::finishEntry()
@@ -134,34 +155,41 @@ void OrderbookCompressedHistoryFactory::addEntry(Long64_t quote, Long64_t depth)
 		delta->baseQuote = quote;
 		lastQuote = quote;
 	}
-	else
+	if (quote > lastQuote)
 	{
 		while (lastQuote < quote - 0x7fffffff)
 		{
 			addDeltaEntry(0x7fffffff, 0);
 		}
-		auto lastDepth = runningDepths[quote];
-		Int_t deltaQuote = quote - lastQuote;
-		if (depth > lastDepth)
-		{
-			while (depth - lastDepth > 0x7fffffff)
-			{
-				addDeltaEntry(deltaQuote, 0x7fffffff);
-				lastDepth = runningDepths[quote];
-				deltaQuote = 0;
-			}
-		}
-		else
-		{
-			while (lastDepth - depth > 0x80000000)
-			{
-				addDeltaEntry(deltaQuote, -0x80000000);
-				lastDepth = runningDepths[quote];
-				deltaQuote = 0;
-			}
-		}
-		addDeltaEntry(deltaQuote, depth - lastDepth);
 	}
+	else if (lastQuote > quote)
+	{
+		while (quote < lastQuote - 0x80000000)
+		{
+			addDeltaEntry(-0x80000000, 0);
+		}
+	}
+	auto lastDepth = runningDepths[quote];
+	Int_t deltaQuote = quote - lastQuote;
+	if (depth > lastDepth)
+	{
+		while (depth - lastDepth > 0x7fffffff)
+		{
+			addDeltaEntry(deltaQuote, 0x7fffffff);
+			lastDepth = runningDepths[quote];
+			deltaQuote = 0;
+		}
+	}
+	else
+	{
+		while (lastDepth - depth > 0x80000000)
+		{
+			addDeltaEntry(deltaQuote, -0x80000000);
+			lastDepth = runningDepths[quote];
+			deltaQuote = 0;
+		}
+	}
+	addDeltaEntry(deltaQuote, depth - lastDepth);
 }
 
 void OrderbookCompressedHistoryFactory::addChunk(OrderbookCompressedHistory & chunk)
@@ -187,7 +215,10 @@ void OrderbookCompressedHistoryFactory::addDeltaEntry(Int_t quote, Int_t depth)
 		delta->quotes.Set(numDeltaEntries * 2);
 		delta->depths.Set(numDeltaEntries * 2);
 	}
-	delta->quotes[numDeltaEntries - 1] = quote;
+	if (numDeltaEntries > 0)
+	{
+		delta->quotes[numDeltaEntries - 1] = quote;
+	}
 	delta->depths[numDeltaEntries] = depth;
 
 	++ numDeltaEntries;
@@ -195,3 +226,9 @@ void OrderbookCompressedHistoryFactory::addDeltaEntry(Int_t quote, Int_t depth)
 	lastQuote += quote;
 	runningDepths[lastQuote] += depth;
 }
+	// to get an array index in gdb:
+	// 	p (*(int_t**)(*(void**)($rbp-8)+0x10))[i]
+	// next error happens right before deltaIdx=16
+	// 	timeQuoteDepths:
+	// 		correct	1551706894, 368912, 2640000000
+	// 		wrong   1551706950, 368821, 520000000

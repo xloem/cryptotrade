@@ -7,6 +7,37 @@
 
 #include <iostream>
 
+template <typename F>
+void iterateTimeQuoteDepth(std::string obj, std::string pat, F const & f)
+{
+	TChain ch(obj.c_str());
+	ch.Add(pat.c_str());
+	TTreeReader reader(&ch);
+	TTreeReaderValue<Double_t> rTime(reader, "time"), rQuote(reader, "quote"), rDepth(reader, "depth");
+
+	std::map<Long64_t, Long64_t> curDepths;
+	bool keepgoing = reader.Next();
+
+	while (keepgoing)
+	{
+		Long64_t lastTime = *rTime + 0.5;
+		Long64_t nextTime = lastTime;
+		curDepths.clear();
+		do
+		{
+			curDepths[*rQuote * 100 + 0.5] = *rDepth * 100000000 + 0.5;
+			keepgoing = reader.Next();
+			nextTime = *rTime + 0.5;
+		}
+		while (keepgoing && nextTime == lastTime);
+
+		for (auto & quoteDepth : curDepths)
+		{
+			f(lastTime, quoteDepth.first, quoteDepth.second);
+		}
+	}
+}
+
 int main(int argc, char const ** argv)
 {
 	if (argc != 4)
@@ -23,14 +54,15 @@ int main(int argc, char const ** argv)
 		TTreeReader reader(&ch);
 		OrderbookCompressedHistory och;
 		OrderbookCompressedHistoryFactory ochf(och);
-		TTreeReaderValue<Double_t> rTime(reader, "time"), rQuote(reader, "quote"), rDepth(reader, "depth");
 	
 		std::cout << "Reading values ..." << std::endl;
-		while(reader.Next())
-		{
-			ochf.advance(*rTime + 0.5);
-			ochf.addEntry(*rQuote * 100 + 0.5, *rDepth * 100000000 + 0.5);
-		}
+		iterateTimeQuoteDepth(obj, pat,
+				[&](Long64_t time, Long64_t quote, Long64_t depth)
+				{
+					ochf.advance(time);
+					ochf.addEntry(quote, depth);
+				}
+				);
 		ochf.finishEntry();
 	
 		std::cout << "Writing output ..." << std::endl;
@@ -43,33 +75,49 @@ int main(int argc, char const ** argv)
 		TFile f(output);
 		TTree * t = (TTree *)f.Get(obj);
 		TTreeReader reader(&ch);
-		OrderbookCompressedHistory * ochp;
+		OrderbookCompressedHistory * ochp = nullptr;
 		TTreeReaderValue<Double_t> rTime(reader, "time"), rQuote(reader, "quote"), rDepth(reader, "depth");
 
-		t->SetBranchAddress("compressedhistory", &ochp);
-		t->GetEntry(0);
+		auto branch = t->GetBranch("compressedhistory");
+		branch->SetAddress(&ochp);
+		branch->GetEntry(0);
 
 		std::cout << "Comparing values ..." << std::endl;
 		auto it = ochp->begin();
-		while(reader.Next())
-		{
-			if (!(it != ochp->end()))
-			{
-				std::cout << "compressed file ends early" << std::endl;
-				return -1;
-			}
-			auto timeQuoteDepth = *it;
-			decltype(timeQuoteDepth) cmp{*rTime + 0.5, *rQuote * 100 + 0.5, *rDepth * 100000000 + 0.5};
-			if (timeQuoteDepth != cmp)
-			{
-				std::cout << "Comparison failed =(" << std::endl;
-				return -1;
-			}
-		}
+		std::map<Long64_t,Long64_t> runningDepths;
+		iterateTimeQuoteDepth(obj, pat,
+				[&](Long64_t time, Long64_t quote, Long64_t depth)
+				{
+					//std::cout << "Data:  " << time << " " << quote << " " << depth << std::endl;
+					if (runningDepths[quote] == depth)
+					{
+						return;
+					}
+					if (!(it != ochp->end()))
+					{
+						std::cout << "compressed file ends early" << std::endl;
+						exit(-1);
+					}
+					std::tuple<Long64_t,Long64_t,Long64_t> cmp{time, quote, depth};
+					std::tuple<Long64_t,Long64_t,Long64_t> timeQuoteDepth = *it;
+					++ it;
+					if (timeQuoteDepth != cmp)
+					{
+						std::cout << "Comparison failed =(" << std::endl;
+						std::cout << "Previous:             " << quote << " " << runningDepths[quote] << std::endl;
+						std::cout << "Original:  " << time << " " << quote << " " << depth << std::endl;
+						std::cout << "Reencoded: " << std::get<0>(timeQuoteDepth) << " " << std::get<1>(timeQuoteDepth) << " " << std::get<2>(timeQuoteDepth) << std::endl; 
+						exit(-1);
+					}
+					runningDepths[quote] = depth;
+				}
+		);
 		if (it != ochp->end())
 		{
 			std::cout << "extra values in compressed file" << std::endl;
 			return -1;
 		}
 	}
+	std::cout << "Success." << std::endl;
+	return 0;
 }
