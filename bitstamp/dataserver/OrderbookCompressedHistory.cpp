@@ -117,13 +117,27 @@ void OrderbookCompressedHistoryFactory::advance(Long64_t timestamp)
 		finishEntry();
 	}
 
-	while (timestamp - lastTimestamp > 255)
+	if (timestamp > lastTimestamp)
 	{
-		Delta * delta = new Delta();
-		delta->timestamp = 255;
-		delta->baseQuote = 0;
-		chunk.deltas.Add(delta);
-		lastTimestamp += 255;
+		while (timestamp - lastTimestamp > 0x7f)
+		{
+			Delta * delta = new Delta();
+			delta->timestamp = 0x7f;
+			delta->baseQuote = 0;
+			chunk.deltas.Add(delta);
+			lastTimestamp += 0x7f;
+		}
+	}
+	else if (lastTimestamp > timestamp)
+	{
+		while (lastTimestamp - timestamp > 0x80)
+		{
+			Delta * delta = new Delta();
+			delta->timestamp = -0x80;
+			delta->baseQuote = 0;
+			chunk.deltas.Add(delta);
+			lastTimestamp -= 0x80;
+		}
 	}
 	
 	Delta * delta = new Delta();
@@ -226,9 +240,3 @@ void OrderbookCompressedHistoryFactory::addDeltaEntry(Int_t quote, Int_t depth)
 	lastQuote += quote;
 	runningDepths[lastQuote] += depth;
 }
-	// to get an array index in gdb:
-	// 	p (*(int_t**)(*(void**)($rbp-8)+0x10))[i]
-	// next error happens right before deltaIdx=16
-	// 	timeQuoteDepths:
-	// 		correct	1551706894, 368912, 2640000000
-	// 		wrong   1551706950, 368821, 520000000

@@ -27,9 +27,13 @@ void iterateTimeQuoteDepth(std::string obj, std::string pat, F const & f)
 		{
 			curDepths[*rQuote * 100 + 0.5] = *rDepth * 100000000 + 0.5;
 			keepgoing = reader.Next();
+			if (!keepgoing)
+			{
+				break;
+			}
 			nextTime = *rTime + 0.5;
 		}
-		while (keepgoing && nextTime == lastTime);
+		while (nextTime == lastTime);
 
 		for (auto & quoteDepth : curDepths)
 		{
@@ -88,11 +92,11 @@ int main(int argc, char const ** argv)
 		iterateTimeQuoteDepth(obj, pat,
 				[&](Long64_t time, Long64_t quote, Long64_t depth)
 				{
-					//std::cout << "Data:  " << time << " " << quote << " " << depth << std::endl;
 					if (runningDepths[quote] == depth)
 					{
 						return;
 					}
+					//std::cout << "Data:  " << time << " " << quote << " " << depth << std::endl;
 					if (!(it != ochp->end()))
 					{
 						std::cout << "compressed file ends early" << std::endl;
