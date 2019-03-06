@@ -15,7 +15,7 @@ SIZE = $(PREFIX)size
 OBJCOPY = $(PREFIX)objcopy
 OBJDUMP = $(PREFIX)objdump
 LDFLAGS = -std=c++11 -lrexjson -lbitstampapi -lcrypto $(shell pkg-config --libs curlpp) -L../rexjson -L../api $(shell root-config --libs)
-CFLAGS += -c -Wall $(shell pkg-config --cflags curlpp) -I../  -I../include
+CFLAGS += -c -Wall $(shell pkg-config --cflags curlpp) -I../  -I../include $(shell root-config --cflags)
 CC_FLAGS = $(CFLAGS)
 CXX_FLAGS = -std=c++11 $(CFLAGS)
 
